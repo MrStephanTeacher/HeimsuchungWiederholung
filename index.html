@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Heimsuchung – Wiederholung</title>
+<!--
+  WIEDERHOLUNG „HEIMSUCHUNG“ – Deutsch Klasse 12 (eA), DSP
+  Aufbau dieser Datei:
+  1) <style>  : Aussehen (Farben, Abstände, Hell-/Dunkelmodus)
+  2) <body>   : Grundgerüst (Kopf, Themenkarten, Platz für Aufgaben)
+  3) <script> : a) THEMEN  = alle Inhalte (hier Texte/Aufgaben ändern)
+                b) Programmteil, der daraus Aufgaben + Feedback baut
+  Datenschutz: keine externen Schriften/Skripte, keine Cookies, kein Speichern.
+-->
+<style>
+:root{
+  --bg:#f6f3ee; --karte:#ffffff; --text:#22201c; --leise:#6b665d;
+  --akzent:#1f5f5b; --akzent-hell:#e3efed; --rand:#ddd6ca;
+  --ok:#2e7d4f; --ok-hell:#e5f4ea; --fehler:#b23a2b; --fehler-hell:#fbe9e6;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#1b1a18; --karte:#26241f; --text:#ece7dd; --leise:#a8a196;
+    --akzent:#7cc0b8; --akzent-hell:#21332f; --rand:#3b3830;
+    --ok:#7fd19b; --ok-hell:#1f3226; --fehler:#f08c7d; --fehler-hell:#3a2220;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font:17px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+.wrap{max-width:960px;margin:0 auto;padding:0 16px}
+header{padding:32px 0 8px}
+h1{font-family:Georgia,"Times New Roman",serif;font-size:2rem;line-height:1.2;margin:0 0 6px}
+.unter{color:var(--leise);margin:0 0 18px}
+.hinweis{background:var(--karte);border:1px solid var(--rand);border-left:5px solid var(--akzent);
+  border-radius:10px;padding:14px 18px;margin-bottom:18px}
+.hinweis ul{margin:6px 0 0;padding-left:20px}
+.gesamt{display:flex;align-items:center;gap:12px;margin:8px 0 22px;font-size:.95rem;color:var(--leise)}
+.balken{flex:1;height:10px;background:var(--rand);border-radius:99px;overflow:hidden}
+.balken span{display:block;height:100%;width:0;background:var(--akzent);transition:width .4s}
+#karten{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-bottom:28px}
+.karte{display:flex;flex-direction:column;gap:4px;text-decoration:none;color:inherit;
+  background:var(--karte);border:1px solid var(--rand);border-radius:12px;padding:14px;transition:transform .15s,border-color .15s}
+.karte:hover,.karte:focus{transform:translateY(-2px);border-color:var(--akzent);outline:none}
+.karte .icon{font-size:1.5rem}
+.karte .k-titel{font-weight:700;line-height:1.25}
+.karte .k-info{font-size:.85rem;color:var(--leise);flex:1}
+.karte .k-meta{font-size:.82rem;color:var(--leise);margin-top:4px}
+.karte.fertig{border-color:var(--ok);background:var(--ok-hell)}
+details.thema{background:var(--karte);border:1px solid var(--rand);border-radius:12px;margin-bottom:14px;scroll-margin-top:12px}
+details.thema>summary{cursor:pointer;list-style:none;padding:16px 18px;display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.1rem}
+details.thema>summary::-webkit-details-marker{display:none}
+details.thema>summary::after{content:"▸";margin-left:auto;color:var(--leise);transition:transform .2s}
+details.thema[open]>summary::after{transform:rotate(90deg)}
+.badge{font-size:.8rem;font-weight:600;background:var(--akzent-hell);color:var(--akzent);padding:2px 9px;border-radius:99px;white-space:nowrap}
+.thema-inhalt{padding:0 18px 18px}
+.intro{color:var(--leise);margin-top:0}
+.aufgabe{border-top:1px solid var(--rand);padding:16px 0}
+.aufgabe h3{font-size:1rem;margin:0 0 10px;display:flex;gap:10px;align-items:flex-start;font-weight:600}
+.nr{flex:none;width:26px;height:26px;border-radius:50%;background:var(--akzent-hell);color:var(--akzent);
+  display:inline-flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700}
+.aufgabe.geloest .nr{background:var(--ok);color:var(--karte)}
+.aufgabe.geloest .nr::before{content:"✓"} .aufgabe.geloest .nr span{display:none}
+.kontext{background:var(--bg);border-radius:8px;padding:10px 14px;margin:0 0 12px;font-size:.95rem}
+.kontext p{margin:4px 0}
+.optionen{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--rand);border-radius:8px;padding:9px 12px;cursor:pointer}
+.opt input{margin-top:5px}
+.zeilen{display:flex;flex-direction:column;gap:8px}
+.zeile{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;border:1px solid var(--rand);border-radius:8px;padding:8px 12px}
+.zeile .z-text{flex:1 1 260px}
+select,textarea{font:inherit;color:var(--text);background:var(--karte);border:1px solid var(--rand);border-radius:6px;padding:5px 8px;max-width:100%}
+textarea{width:100%;resize:vertical}
+.richtig{border-color:var(--ok)!important;background:var(--ok-hell)}
+.falsch{border-color:var(--fehler)!important;background:var(--fehler-hell)}
+.knoepfe{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+button{font:inherit;font-size:.92rem;font-weight:600;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;
+  background:var(--akzent);color:var(--karte)}
+button.sek{background:transparent;color:var(--akzent);border:1px solid var(--akzent)}
+button:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--akzent);outline-offset:2px}
+.feedback:empty{display:none}
+.feedback{margin-top:12px;border-radius:8px;padding:10px 14px;font-size:.95rem}
+.feedback.ok{background:var(--ok-hell);border-left:4px solid var(--ok)}
+.feedback.nein{background:var(--fehler-hell);border-left:4px solid var(--fehler)}
+.feedback.info{background:var(--akzent-hell);border-left:4px solid var(--akzent)}
+.feedback p{margin:4px 0}
+.checkliste label{display:flex;gap:8px;align-items:flex-start;margin:4px 0}
+.muster{background:var(--karte);border:1px dashed var(--rand);border-radius:6px;padding:8px 12px;margin:8px 0}
+footer{color:var(--leise);font-size:.85rem;padding:20px 0 40px}
+@media (max-width:520px){h1{font-size:1.6rem} .zeile select{width:100%}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Jenny Erpenbeck: „Heimsuchung“</h1>
+  <p class="unter">Wiederholung · Deutsch Klasse 12 (eA) · Deutsche Schule Prag</p>
+  <div class="hinweis">
+    <strong>So arbeiten Sie:</strong>
+    <ul>
+      <li>Wählen Sie frei, womit Sie beginnen. Planen Sie insgesamt <b>ca. 60 Minuten</b> ein.</li>
+      <li>Nach „Prüfen“ sehen Sie sofort, ob Ihre Lösung stimmt. Rote Zeilen noch einmal überdenken, erst dann die Lösung anzeigen.</li>
+      <li>Bei Schreibaufgaben vergleichen Sie Ihren Text selbst mit Musterlösung und Checkliste.</li>
+    </ul>
+  </div>
+  <div class="gesamt"><span>Gesamtfortschritt</span><div class="balken"><span id="gesamtbalken"></span></div><span id="gesamtzahl">0</span></div>
+</header>
+<main>
+  <nav id="karten" aria-label="Themenbereiche"></nav>
+  <div id="themen"></div>
+</main>
+<footer>
+  Datenschutz: Diese Seite lädt keine externen Inhalte, setzt keine Cookies und speichert keine Eingaben. Alles bleibt in Ihrem Browser; beim Neuladen wird zurückgesetzt.
+</footer>
+</div>
+
+<script>
+/* =========================================================
+   TEIL A: INHALTE
+   Aufgabentypen:
+   mc       = eine richtige Antwort  (optionen, richtig = Nummer ab 0)
+   zuordnen = Aussagen Kategorien zuordnen (items: t = Text, k = Nummer der Kategorie)
+   reihe    = richtige Reihenfolge (items stehen hier in RICHTIGER Reihenfolge, werden gemischt angezeigt)
+   offen    = Schreibaufgabe mit Musterlösung + Checkliste
+   ========================================================= */
+const THEMEN = [
+{
+  id:"heim", icon:"🏠", zeit:8,
+  titel:"Heimat & „Heimsuchung“",
+  kurz:"Morphem {heim-}, Bedeutungsfelder, Doppeldeutigkeit des Titels",
+  intro:"Ausgangspunkt unserer Lektüre: Was steckt in dem kleinen Bestandteil {heim-}?",
+  aufgaben:[
+    {typ:"mc", frage:"Was ist ein <b>Morphem</b>?",
+     optionen:["die kleinste lautliche Einheit einer Sprache","die kleinste bedeutungstragende Einheit einer Sprache","eine betonte Silbe","ein Wortstamm mitsamt Endung"],
+     richtig:1,
+     erklaerung:"Ein Morphem ist die kleinste Einheit, die Bedeutung trägt, z. B. {heim} in <i>Heimat, heimkehren, Heimsuchung</i>. Die kleinste lautliche Einheit heißt Phonem."},
+    {typ:"zuordnen", frage:"Ordnen Sie die Wörter dem passenden Bedeutungscluster zu.",
+     kategorien:["Geborgenheit / Zuhause","Rückkehr nach Hause","Unheil / Bedrängnis","Verborgenheit"],
+     items:[{t:"Heimat",k:0},{t:"heimkehren",k:1},{t:"„Eine Seuche suchte das Dorf heim.“",k:2},{t:"heimlich",k:3},
+            {t:"Eigenheim",k:0},{t:"Heimweg",k:1},{t:"Heimsuchung (als Unglück)",k:2},{t:"Geheimnis",k:3},{t:"heimelig",k:0}],
+     erklaerung:"{heim} bedeutet ursprünglich „Haus, Wohnort“. Daraus entstehen Geborgenheit und Heimkehr. Auch <i>heimlich</i> hieß zunächst „zum Haus gehörig, vertraut“, erst später „verborgen“. Bei <i>heimsuchen</i> kommt etwas ungebeten ins Haus."},
+    {typ:"mc", frage:"Das Grimm’sche Wörterbuch nennt mehrere Bedeutungen von <i>heimsuchen</i>. Welche passt zur zweiten Hälfte unserer Aufgabenstellung („von etwas Bösen überrascht werden in den eigenen vier Wänden“)?",
+     optionen:["jemanden daheim aufsuchen, besuchen","jemanden in seinem Wohnhaus überfallen, feindlich bedrängen","sich ein neues Heim suchen","eine verlorene Sache im Haus suchen"],
+     richtig:1,
+     erklaerung:"Grimm führt u. a. die ältere rechtssprachliche Bedeutung an: jemanden in seinem Haus feindlich überfallen. Daneben stehen die neutrale Bedeutung (besuchen) und die religiöse (Gott sucht strafend heim)."},
+    {typ:"mc", frage:"Welche Deutung des Titels entspricht der Doppeldeutigkeit, mit der wir im Kurs arbeiten?",
+     optionen:["Heimat als Ort der Kindheit vs. Heimat als Ort des Alters","die Suche nach einem Ort zum Leben vs. das Getroffenwerden von Unheil im eigenen Zuhause","die Suche nach einem Haus vs. der Verkauf eines Hauses","der Besuch von Verwandten vs. der Besuch von Fremden"],
+     richtig:1,
+     erklaerung:"Heim-Suchung (die Suche nach einem Heim) und Heimsuchung (Unheil, das ins eigene Haus einbricht). Beide Bedeutungen treffen fast alle Figuren des Romans."},
+    {typ:"offen", frage:"Wählen Sie eines der Zitate. Ordnen Sie es begründet einem Bedeutungscluster zu (3–4 Sätze).",
+     kontext:"<p>„Ohne Heimat sein heißt leiden.“ (Dostojewski)</p><p>„Man weiß nicht, was man an der Heimat hat, bis man in die Ferne kommt.“ (Sprichwort)</p><p>„Oh welche Zauber liegen in diesem kleinen Wort: Daheim.“ (Geibel)</p><p>„Wer die Enge seiner Heimat begreifen will, der reise.“ (Tucholsky)</p>",
+     loesung:"<p><b>Beispiel (Sprichwort):</b> Das Sprichwort gehört zum Cluster „Geborgenheit / Zuhause“. Heimat erscheint als ein Wert, der im Alltag selbstverständlich ist und erst durch den Gegenbegriff „Ferne“ sichtbar wird. Damit wird Heimat über den Verlust bestimmt – ein Gedanke, der auch im Roman zentral ist: Viele Figuren erkennen erst beim Verlassen des Hauses, was es ihnen bedeutet.</p>",
+     kriterien:["Zitat genannt und einem Cluster zugeordnet","Das Wort mit {heim} genau untersucht","Zuordnung begründet","Bezug zu einem Gegenbegriff (z. B. Ferne, Enge) hergestellt"]}
+  ]
+},
+{
+  id:"genette", icon:"🔭", zeit:10,
+  titel:"Erzähltheorie nach Genette",
+  kurz:"Diegese, Erzählebenen, Fokalisierung",
+  intro:"Genette stellt drei Fragen: Kommt die Erzählinstanz in ihrer Geschichte vor? Auf welcher Ebene wird erzählt? Wie viel weiß sie?",
+  aufgaben:[
+    {typ:"zuordnen", frage:"Hetero- oder homodiegetisch? Ordnen Sie zu.",
+     kategorien:["heterodiegetisch","homodiegetisch"],
+     items:[{t:"„Als Mara an diesem Morgen die Wohnung verließ, bemerkte sie den Brief erst nicht.“",k:0},
+            {t:"„Als ich an diesem Morgen die Wohnung verließ, bemerkte ich den Brief erst nicht.“",k:1},
+            {t:"Die Erzählinstanz im Kapitel „Der Architekt“",k:0},
+            {t:"Die Stimme im Notizbuch: „Im Sommer 1947 kam ich zum ersten Mal in dieses Dorf.“",k:1}],
+     erklaerung:"Entscheidend ist, ob die Erzählinstanz in der erzählten Welt selbst vorkommt (homodiegetisch) oder nicht (heterodiegetisch). In „Heimsuchung“ erzählt eine Instanz, die nicht zur Handlung gehört."},
+    {typ:"mc", frage:"Clara findet im Zug ein Notizbuch und liest darin eine Ich-Erzählung. Wie bezeichnet Genette die Erzählinstanz <b>des Notizbuchs</b>?",
+     optionen:["extradiegetisch-heterodiegetisch","extradiegetisch-homodiegetisch","intradiegetisch-homodiegetisch","intradiegetisch-heterodiegetisch"],
+     richtig:2,
+     erklaerung:"Der Notizbuch-Text ist eine Erzählung in der Erzählung: zweite Ebene, also <b>intradiegetisch</b>. Der Ich-Erzähler kommt in seiner Geschichte selbst vor, also <b>homodiegetisch</b>. Die Erzählinstanz, die von Clara erzählt, ist dagegen extradiegetisch-heterodiegetisch."},
+    {typ:"zuordnen", frage:"Bestimmen Sie die Fokalisierung.",
+     kategorien:["Nullfokalisierung (Erzähler > Figur)","interne Fokalisierung (Erzähler = Figur)","externe Fokalisierung (Erzähler < Figur)"],
+     items:[{t:"„Hatte der Direktor ihre Bewerbung überhaupt schon gelesen? […] Vielleicht war das ein gutes Zeichen.“",k:1},
+            {t:"„Sie sah zweimal auf ihre Uhr. Dann ging sie drei Schritte den Flur hinunter und wieder zurück.“",k:2},
+            {t:"„Sie glaubte, der Direktor habe ihre Bewerbung noch nicht gelesen […]. Darin irrte sie sich.“",k:0}],
+     erklaerung:"Innensicht mit Fragen aus Lenas Kopf = intern. Nur Beobachtbares wie mit einer Kamera = extern. Der Erzähler weiß mehr als Lena („Darin irrte sie sich.“) = Nullfokalisierung."},
+    {typ:"mc", frage:"Der Prolog erzählt auf wenigen Seiten die Entstehung des Sees über Jahrtausende. Welche Beschreibung passt am besten?",
+     optionen:["interne Fokalisierung und Zeitdehnung","Nullfokalisierung und starke Zeitraffung","externe Fokalisierung und Zeitdeckung","homodiegetisches Erzählen und Rückblende"],
+     richtig:1,
+     erklaerung:"Kein Mensch kann diesen Zeitraum überblicken: Die Erzählinstanz weiß mehr als jede Figur (Nullfokalisierung). Tausende Jahre auf wenigen Seiten sind extreme Zeitraffung."},
+    {typ:"mc", frage:"Warum stellt Genette drei getrennte Fragen, statt fertige Erzählertypen zu benennen?",
+     optionen:["Weil sich die Merkmale frei kombinieren lassen und Texte dadurch genauer beschrieben werden","Weil es nur genau drei Erzählertypen gibt","Weil die Fragen kürzer sind als Stanzels Typenkreis","Weil Fokalisierung für Romane keine Rolle spielt"],
+     richtig:0,
+     erklaerung:"Diegese, Erzählebene und Fokalisierung sind voneinander unabhängig. Durch die Kombination lassen sich auch Wechsel innerhalb eines Textes präzise beschreiben."}
+  ]
+},
+{
+  id:"technik", icon:"⏳", zeit:6,
+  titel:"Erzähltechnik: Verhalten, Zeit, Ordnung",
+  kurz:"auktorial/personal/neutral, Zeitraffung & Co.",
+  intro:"Die Begriffe aus der Analyse der Kurzgeschichte – kurz aufgefrischt.",
+  aufgaben:[
+    {typ:"zuordnen", frage:"Ordnen Sie die Beschreibungen der passenden Zeitgestaltung zu.",
+     kategorien:["Zeitdeckung","Zeitraffung","Zeitdehnung"],
+     items:[{t:"Die Erzählzeit ist viel kürzer als die erzählte Zeit („Jahre vergingen.“).",k:1},
+            {t:"Ein Dialog wird Wort für Wort wiedergegeben.",k:0},
+            {t:"Ein kurzer Augenblick wird mit Gedanken und Details über eine ganze Seite ausgedehnt.",k:2},
+            {t:"Zwei Figuren steigen 400 Stufen hinauf – erzählt in einem einzigen Satz.",k:1}],
+     erklaerung:"Zeitdeckung: Erzählzeit = erzählte Zeit. Zeitraffung: Erzählzeit < erzählte Zeit. Zeitdehnung: Erzählzeit > erzählte Zeit."},
+    {typ:"zuordnen", frage:"Welches Erzählverhalten liegt vor?",
+     kategorien:["auktorial","personal","neutral"],
+     items:[{t:"Der Erzähler kommentiert, wertet und kennt das Innere aller Figuren.",k:0},
+            {t:"Das Geschehen wird aus der Sicht einer einzigen Figur erlebt.",k:1},
+            {t:"Der Erzähler tritt ganz zurück; Dialoge stehen scheinbar unvermittelt.",k:2}],
+     erklaerung:"Auktorial = allwissend und kommentierend, personal = aus Sicht einer Figur, neutral = der Erzähler verschwindet hinter dem Geschehen."},
+    {typ:"mc", frage:"Eine Erzählung beginnt am Abend, führt durch die Nacht bis zum Morgen und verwendet nur Zeitwörter wie „dann“ und „bald“. Wie ist die Ordnung?",
+     optionen:["chronologisch","Rückschau","Vorausschau","montiert / sprunghaft"],
+     richtig:0,
+     erklaerung:"Die Ereignisse werden in der Reihenfolge erzählt, in der sie geschehen. Die Zeitwörter zeigen nur ein Nacheinander an."}
+  ]
+},
+{
+  id:"aufbau", icon:"🧭", zeit:8,
+  titel:"Aufbau des Romans & Figuren",
+  kurz:"Rahmen, Gärtner-Kapitel, Zeitstrahl der Figuren",
+  intro:"Ein Grundstück am See, rund hundert Jahre deutsche Geschichte, viele Bewohner.",
+  aufgaben:[
+    {typ:"mc", frage:"Wodurch wird der Roman gerahmt?",
+     optionen:["durch Prolog und Epilog","durch zwei Kapitel über den Architekten","durch Briefe der Schriftstellerin","durch Tagebucheinträge des Gärtners"],
+     richtig:0,
+     erklaerung:"Prolog und Epilog bilden den Rahmen. Dazwischen stehen die Kapitel der wechselnden Figuren, immer wieder unterbrochen von Kapiteln über den Gärtner."},
+    {typ:"mc", frage:"Welche Funktion haben die wiederkehrenden Kapitel „Der Gärtner“?",
+     optionen:["Sie bilden eine Konstante, die die wechselnden Bewohner und Epochen verbindet und den Kreislauf der Natur dem Wandel der Geschichte gegenüberstellt.","Sie erzählen ausschließlich die Liebesgeschichte des Gärtners.","Sie sind Rückblenden in die Kindheit des Architekten.","Sie enthalten Kommentare der Autorin zur Politik."],
+     richtig:0,
+     erklaerung:"Der Gärtner bleibt namenlos und arbeitet über die Epochen hinweg auf dem Grundstück, während die Besitzer wechseln. Er steht für Dauer und Natur im Gegensatz zu den historischen Brüchen."},
+    {typ:"reihe", frage:"Bringen Sie die Figurenkapitel in die Reihenfolge aus unserem Aufbau-Schema (ohne Gärtner-Kapitel).",
+     items:["Der Großbauer","Der Architekt","Der Tuchfabrikant","Die Frau des Architekten","Das Mädchen","Der Rotarmist","Die Schriftstellerin","Die Besucherin","Die Unterpächter","Der Kinderfreund","Die unberechtigte Eigenbesitzerin"],
+     erklaerung:"Die Reihenfolge folgt grob der Chronologie vom frühen 20. Jahrhundert bis in die Zeit nach der Wende."},
+    {typ:"zuordnen", frage:"Ordnen Sie die Figuren der Epoche zu, in der ihr Kapitel (nach unserem Zeitstrahl) vor allem spielt.",
+     kategorien:["Weimarer Republik","NS-Diktatur ab 1933","Zweiter Weltkrieg / Holocaust","Nachwendezeit"],
+     items:[{t:"Der Tuchfabrikant",k:1},{t:"Die unberechtigte Eigenbesitzerin",k:3},{t:"Der Großbauer",k:0},{t:"Doris (Das Mädchen)",k:2},{t:"Der Rotarmist",k:2}],
+     erklaerung:"So steht es auf unserem Zeitstrahl. Der Gärtner zieht sich als einzige Figur durch alle Epochen."}
+  ]
+},
+{
+  id:"lotman", icon:"🗺️", zeit:8,
+  titel:"Semantische Räume nach Lotman",
+  kurz:"Raum, Grenze, Ereignis – Ost vs. West",
+  intro:"Räume sind bei Lotman nie nur Kulisse, sondern tragen Bedeutung.",
+  aufgaben:[
+    {typ:"zuordnen", frage:"Ordnen Sie jeder Erklärung den passenden Fachbegriff zu.",
+     kategorien:["semantischer Raum","Spannungsverhältnis","Grenze","Ereignis"],
+     items:[{t:"Bereich der erzählten Welt mit bestimmten Merkmalen und Werten",k:0},
+            {t:"Gegensatz zwischen zwei Räumen mit entgegengesetzten Merkmalen (A vs. B)",k:1},
+            {t:"trennt die Räume; gilt nach der Ordnung des Textes als nicht überschreitbar",k:2},
+            {t:"Überschreitung der Grenze zwischen zwei semantischen Räumen",k:3}],
+     erklaerung:"Erst die Grenzüberschreitung – etwas, das nach der Ordnung des Textes nicht hätte geschehen dürfen – bringt eine Handlung in Gang."},
+    {typ:"mc", frage:"Welche Bestimmung passt zu „Rotkäppchen“?",
+     optionen:["Weg (Ordnung, Sicherheit) vs. Wald (Gefahr) – Ereignis: Rotkäppchen verlässt den Weg","Haus der Mutter vs. Haus der Großmutter – Ereignis: Rotkäppchen klopft an","Tag vs. Nacht – Ereignis: Der Jäger schläft ein","Mensch vs. Tier – Ereignis: Der Wolf isst den Kuchen"],
+     richtig:0,
+     erklaerung:"Die Mahnung der Mutter, nicht vom Weg abzuweichen, markiert die Grenze. Mit dem Abweichen überschreitet Rotkäppchen sie."},
+    {typ:"zuordnen", frage:"Kapitel „Der Architekt“ (1951): Welcher Raum hat aus Sicht des Architekten welches Merkmal?",
+     kategorien:["Osten (DDR: Haus am See, Ost-Berlin)","Westen (West-Berlin)"],
+     items:[{t:"selbst entworfenes, mit eigenen Händen gestaltetes Haus",k:0},
+            {t:"Sicherheit vor der drohenden Verhaftung",k:1},
+            {t:"drohende Verhaftung und Enteignung",k:0},
+            {t:"Leben ohne Haus und ohne den zurückgelassenen Besitz",k:1},
+            {t:"Ort der Erinnerung, der Arbeit und der Heimat",k:0},
+            {t:"unbekannter Neuanfang",k:1}],
+     erklaerung:"Der Osten ist zugleich Heimat und Bedrohung, der Westen zugleich Rettung und Verlust. Schon die Merkmale zeigen, dass die Opposition nicht einfach ist."},
+    {typ:"mc", frage:"Was ist im Kapitel die Grenze – und warum ist der Aufbruch ein Ereignis im Sinne Lotmans?",
+     optionen:["Die Sektorengrenze in Berlin; der Architekt überschreitet sie mit der S-Bahn und gibt damit Haus und Heimat auf – etwas, das er für sein Haus nie wollte.","Der See; der Architekt schwimmt ans andere Ufer.","Der Gartenzaun; der Architekt verlässt das Grundstück zum Einkaufen.","Die Berliner Mauer; der Architekt klettert hinüber."],
+     richtig:0,
+     erklaerung:"Die Grenze ist konkret (Sektorengrenze, 1951 noch per S-Bahn passierbar – die Mauer gab es noch nicht), trennt für ihn aber auch Besitz und Verlust, Bleiben und Gehen."},
+    {typ:"offen", frage:"AFB III: Beurteilen Sie, ob sich das Spannungsverhältnis „Ost vs. West“ im Kapitel eindeutig als „gut vs. schlecht“ lesen lässt (ca. 5 Sätze).",
+     kontext:"<p><b>Redemittel:</b> Der Osten ist für den Architekten zugleich … und … · Die Grenze trennt nicht nur …, sondern auch … · Das Spannungsverhältnis ist (nicht) eindeutig, denn …</p>",
+     loesung:"<p>Das Spannungsverhältnis lässt sich nicht eindeutig als „gut vs. schlecht“ lesen. Der Osten ist für den Architekten zugleich Heimat und Falle: Hier steht sein selbst gebautes Haus, hier droht ihm aber die Verhaftung. Der Westen bedeutet Sicherheit, zugleich jedoch den Verlust von Haus, Besitz und Erinnerungsort. Hinzu kommt, dass der Architekt selbst nicht unschuldig ist: Er hat in verschiedenen Systemen zu seinem Vorteil gehandelt, und gerade ein Geschäft über die Grenze hinweg holt ihn ein. Die Grenze trennt also weniger Gut und Böse als Bleiben und Gehen – beide Räume sind ambivalent.</p>",
+     kriterien:["klares Urteil formuliert","Ambivalenz des Ostens (Heimat UND Bedrohung) belegt","Ambivalenz des Westens (Rettung UND Verlust) belegt","Rolle/Mitschuld des Architekten bedacht","Fazit greift das Urteil wieder auf"]}
+  ]
+},
+{
+  id:"architekt", icon:"🔑", zeit:10,
+  titel:"„Der Architekt“: sprachliche Mittel",
+  kurz:"Stilmittel erkennen, benennen, deuten",
+  intro:"Die Ergebnisse unserer Gruppenarbeit – geprüft und gesichert.",
+  aufgaben:[
+    {typ:"zuordnen", frage:"Welches sprachliche Mittel liegt vor?",
+     kategorien:["Metapher","Personifikation","Vergleich","Aufzählung","Wiederholung","Antithese (mit Parallelismus)"],
+     items:[{t:"„Jetzt wurde ihm die Heimat zur Falle“ (S. 38)",k:0},
+            {t:"Die Türklinke gibt ein „metallenes Seufzen“ von sich (S. 33 f.)",k:1},
+            {t:"„als sei es hier gewachsen, wie etwas Lebendiges“",k:2},
+            {t:"„Feldsteine, Stroh, Reibeputz“",k:3},
+            {t:"„Abschließen“ – mehrfach im Abschnitt (S. 33)",k:4},
+            {t:"„Deutsches Stellungsgebiet hieß für sie das Dorf […], Heimat hieß es für die belgischen Bauern.“ (S. 36)",k:5},
+            {t:"Die vergrabenen Gegenstände: „Ruhet in Frieden“ (S. 31)",k:1}],
+     erklaerung:"Achtung beim letzten Beispiel: Durch die Grabformel werden Porzellan und Besteck wie Verstorbene behandelt – das ist eine Personifikation, verstärkt durch das Wortfeld Tod."},
+    {typ:"mc", frage:"Eine Gruppe schrieb: „Durch die Personifikation ‚die Sonne drang‘ wirkt die Natur lebendig.“ Stimmt das?",
+     optionen:["Ja, die Sonne handelt wie ein Mensch.","Nein: Licht kann etwas durchdringen – „dringen“ ist hier üblicher Sprachgebrauch, keine Personifikation.","Ja, aber es ist zugleich eine Antithese.","Nein, es ist eine Alliteration."],
+     richtig:1,
+     erklaerung:"Eine Personifikation liegt nur vor, wenn etwas Nicht-Menschlichem typisch menschliche Eigenschaften oder Handlungen zugeschrieben werden. „Licht dringt durch“ ist gewöhnliche Sprache."},
+    {typ:"mc", frage:"Welche Wortgruppe bildet das Wortfeld (die Isotopieebene) „Tod“, das das Vergraben als Beerdigung erscheinen lässt?",
+     optionen:["Grube – unbestattet – Ruhet in Frieden","Porzellan – Zinnkrüge – Silberbesteck","Feldsteine – Stroh – Reibeputz","Eichenlaub – Nadelbäume – Haselbüsche"],
+     richtig:0,
+     erklaerung:"Diese Begriffe stammen aus dem Bereich der Bestattung. So wird deutlich: Der Architekt beerdigt symbolisch sein altes Leben."},
+    {typ:"mc", frage:"Warum ist die Antithese auf S. 36 für die Doppeldeutigkeit des Titels besonders aussagekräftig?",
+     optionen:["Derselbe Ort wird zweimal benannt und ins Gegenteil gedreht: Zuflucht für die einen, besetzte Heimat für die anderen.","Sie beschreibt zwei verschiedene Dörfer in Belgien.","Sie zeigt, dass der Architekt die belgischen Bauern bewundert.","Sie ist der einzige Dialog des Kapitels."],
+     richtig:0,
+     erklaerung:"Der parallele Satzbau macht den Gegensatz scharf. Die Rettung des Architekten beruht auf einer Besetzung, die das Zuhause anderer heimsucht."},
+    {typ:"mc", frage:"„Die Zeit […] jagt ihn jetzt aus seinem Gehäuse.“ Was leistet diese Formulierung?",
+     optionen:["Die Zeit wird personifiziert und erscheint als Feind; „Gehäuse“ lässt das Haus wie eine schützende Hülle wirken, aus der er vertrieben wird.","Sie ist ein Vergleich zwischen Haus und Uhr.","Sie zeigt, dass der Architekt Schnecken sammelt.","Sie ist eine Aufzählung von Zeitangaben."],
+     richtig:0,
+     erklaerung:"Das Bild verbindet beide Titelbedeutungen: Das Haus ist Schutzraum (Heim), doch genau daraus wird er verjagt (Heimsuchung)."}
+  ]
+},
+{
+  id:"aufsatz", icon:"✍️", zeit:12,
+  titel:"Der Interpretationsaufsatz",
+  kurz:"Aufbau, Basissatz, typische Fehler, eigener Absatz",
+  intro:"Aufgabe: Interpretieren Sie das Kapitel vor dem Hintergrund der Doppeldeutigkeit des Titels „Heimsuchung“.",
+  aufgaben:[
+    {typ:"reihe", frage:"Bringen Sie die Teile des Aufsatzes in die richtige Reihenfolge.",
+     items:["Allgemeine Hinführung","Basissatz mit Hypothese","Kurze Inhaltsangabe und Einordnung","Hauptteil: Interpretation (Sprache/Erzählweise mit Inhalt verknüpfen)","Schluss: Fazit mit Rückbezug auf die Hypothese"],
+     erklaerung:"Die Hinführung lenkt vom Allgemeinen (z. B. deutsche Teilung, „Karma“) zum Text. Der Basissatz stellt Text und Hypothese vor."},
+    {typ:"mc", frage:"Welcher Basissatz ist am gelungensten?",
+     optionen:["Das Kapitel „Der Architekt“ handelt von einem Architekten, der ein Haus am See hat und am Ende fliehen muss.","Das vorliegende Kapitel „Der Architekt“ aus Jenny Erpenbecks Roman „Heimsuchung“ zeigt die Doppeldeutigkeit des Titels, indem der Architekt in seinem selbst entworfenen Haus ein Zuhause findet, ihn dort jedoch die politische Verfolgung einholt, sodass ihm die eigene Heimat zur Falle wird.","In diesem Kapitel gibt es viele Metaphern und Personifikationen, die zeigen, dass das Haus wichtig ist.","Karma existiert, denn die Taten des Architekten werden am Ende bestraft."],
+     richtig:1,
+     erklaerung:"Der Basissatz nennt Kapitel, Roman und Autorin und formuliert eine Hypothese, die <b>beide</b> Bedeutungen des Titels aufgreift. Die anderen Sätze sind nur Inhalt, nur Stilmittel-Liste oder eine Behauptung ohne Textbezug."},
+    {typ:"mc", frage:"Was ist bei der kurzen Inhaltsangabe in der Einleitung besonders wichtig?",
+     optionen:["Sie ist knapp, ordnet das Kapitel in den Roman ein und nimmt den Hauptteil nicht vorweg.","Sie gibt jede Szene genau wieder.","Sie enthält schon alle Zitate für den Hauptteil.","Sie steht im Präteritum."],
+     richtig:0,
+     erklaerung:"Zu viele Details führen zu Wiederholungen mit dem Hauptteil. Tempus der Inhaltsangabe: Präsens."},
+    {typ:"zuordnen", frage:"Welcher Rückmeldung aus der Korrektur entspricht welcher Schülersatz?",
+     kategorien:["Zeilenangabe direkt hinter das Zitat setzen","Deutung fehlt – reine Nacherzählung","Stilmittel falsch benannt","Gedanken nicht logisch verknüpft"],
+     items:[{t:"„Er möchte seine Sachen bewahren. Das sieht man daran, dass er Porzellan, Zinnkrüge und Silberbesteck eingräbt. Dann denkt er an den Einmarsch der Russen.“",k:1},
+            {t:"„In Zeile 13 auf Seite 38 steht: ‚Jetzt wurde ihm die Heimat zur Falle‘, was zeigt …“",k:0},
+            {t:"„Durch die Personifikation ‚die Sonne drang‘ wirkt die Natur lebendig.“",k:2},
+            {t:"„Die Türklinke gibt ein ‚metallenes Seufzen‘ von sich (S. 33). Die Zeit ‚jagt ihn‘ (S. 34). Gegenstände werden wie Tote begraben.“",k:3}],
+     erklaerung:"Verbessern Sie z. B. so: Zitat (S. 38, Z. 13) · nach jedem Beleg die Wirkung erklären · Stilmittel prüfen · Konnektoren wie „deshalb“, „dadurch“, „gerade weil“ verwenden."},
+    {typ:"offen", frage:"Schreiben Sie einen Hauptteil-Absatz (ca. 6 Sätze) zu den vergrabenen Wertsachen des Architekten.",
+     kontext:"<p><b>Material:</b> „Ruhet in Frieden“ (S. 31, Z. 28) · „Grube“ (S. 32, Z. 8) · „unbestattet“ (S. 32, Z. 16)</p>",
+     loesung:"<div class='muster'>Wie sehr der Architekt mit seinem bisherigen Leben abschließen muss, zeigt sich, als er seine Wertsachen im Garten vergräbt. Die Grabformel „Ruhet in Frieden“ (S. 31, Z. 28) personifiziert Porzellan, Zinnkrüge und Silberbesteck, als wären sie Verstorbene. Verstärkt wird dieses Bild durch Begriffe aus dem Wortfeld des Todes wie „Grube“ (S. 32, Z. 8) und „unbestattet“ (ebd., Z. 16). Der Architekt beerdigt damit symbolisch sein altes Leben. Gerade der Garten, ein Teil seines selbst geschaffenen Heims, wird so zum Friedhof: Der Ort, an dem er sich ein Zuhause gebaut hat, ist nun der Ort, an dem ihn das Unheil einholt. Hierin zeigt sich die Doppeldeutigkeit des Titels besonders deutlich.</div>",
+     kriterien:["Einstieg mit einer Deutungsthese, nicht mit Nacherzählung","Zitate mit (S., Z.) direkt dahinter","Stilmittel korrekt benannt","Wirkung erklärt","Bezug zu beiden Bedeutungen von „Heimsuchung“","Sätze logisch verknüpft (dadurch, gerade, so …)"]}
+  ]
+},
+{
+  id:"schriftstellerin", icon:"⌨️", zeit:8,
+  titel:"Tiefenblick: Die Schriftstellerin",
+  kurz:"Ideal vs. Wirklichkeit in der DDR, Schreibmaschine",
+  intro:"Rückkehr aus dem Exil in die DDR: Was will die Schriftstellerin – und was erlebt sie?",
+  aufgaben:[
+    {typ:"mc", frage:"Welche der drei Frauen vom Arbeitsblatt war Jenny Erpenbecks Großmutter?",
+     optionen:["Anna Seghers","Hedda Zinner","Christa Wolf"],
+     richtig:1,
+     erklaerung:"Hedda Zinner schrieb wie Anna Seghers im Exil gegen das NS-Regime an und kehrte nach dem Krieg zurück."},
+    {typ:"zuordnen", frage:"Ziel oder Wirklichkeit? Ordnen Sie zu.",
+     kategorien:["Ziele und Intentionen der Schriftstellerin","Tatsächliche Lebensrealität in der DDR"],
+     items:[{t:"Die „deutschen Barbaren“ sollen wieder menschlich werden (S. 109).",k:0},
+            {t:"Ihre Radiobeiträge werden zensiert, z. B. zum Thema Juden, das „nicht interessant“ sei (S. 113).",k:1},
+            {t:"Aus den Trümmern soll ein Boden entstehen, der nicht mehr trügerisch ist (S. 116 f.).",k:0},
+            {t:"Ein Arzt bekommt „praktisch über Nacht“ die Genehmigung, ein großes Wohnhaus zu bauen (S. 108).",k:1},
+            {t:"Die Menschen sollen nicht nur politisch, sondern auch moralisch Anteil nehmen (vgl. S. 110).",k:0},
+            {t:"Sie empfindet Ekel vor Menschen, die nicht vor dem NS-Regime geflohen sind, und kann ihnen nicht die Hand reichen (vgl. S. 114).",k:1}],
+     erklaerung:"Fazit des Kurses: Sie möchte eine gerechte, menschliche Gesellschaft aufbauen, erlebt im Alltag der DDR aber Ungerechtigkeit und Zensur. Ideal und Wirklichkeit passen nicht zusammen."},
+    {typ:"mc", frage:"Welche Funktion der Schreibmaschine haben wir <b>nicht</b> herausgearbeitet?",
+     optionen:["Mittel, um „Wut“ in „Erschöpfung“ umzuwandeln","Halt gebende „Wand“ mit starker emotionaler Bindung","Werkzeug, um Kontakt zu ihrem verlorenen Mann aufzunehmen","Glaube, dass Geschriebenes die Menschen verändern kann (Katharsis)"],
+     richtig:2,
+     erklaerung:"Die Bindung an die Maschine ist sogar stärker als zum Mann (Ellipse: „aber den Mann hat sie verloren“). Außerdem verschweigt sie der Maschine ihre eigenen Abgründe."},
+    {typ:"mc", frage:"„Die neue Welt soll die alte fressen, die alte wehrt sich“ (S. 114). Was drückt der Satz aus?",
+     optionen:["Den Konflikt zwischen dem sozialistischen Ideal und dem Fortbestehen alter, auch nationalsozialistischer Haltungen in den Menschen","Den Hunger in der Nachkriegszeit","Den Streit zwischen zwei Nachbarn am See","Die Freude über den schnellen Wiederaufbau"],
+     richtig:0,
+     erklaerung:"Das Neue kann nur aus dem Alten wachsen – die Menschen lassen sich nicht austauschen. Darin liegt die Spannung zwischen Anspruch und Wirklichkeit."}
+  ]
+}
+];
+
+/* =========================================================
+   TEIL B: PROGRAMM – baut die Seite aus den Inhalten oben
+   ========================================================= */
+const geloest = {};   // merkt sich (nur im Arbeitsspeicher), welche Aufgaben gelöst sind
+
+function mischen(liste){ // zufällige Reihenfolge (für Reihenfolge-Aufgaben)
+  const a = liste.slice();
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  if(a.length>1 && a.every((x,i)=>x===i)) return mischen(liste);
+  return a;
+}
+
+function baueAufgabe(t, a, nr){
+  const key = t.id + "-" + nr;
+  const box = document.createElement("article");
+  box.className = "aufgabe";
+  let h = `<h3><span class="nr"><span>${nr+1}</span></span><span>${a.frage}</span></h3>`;
+  if(a.kontext) h += `<div class="kontext">${a.kontext}</div>`;
+
+  if(a.typ==="mc"){
+    h += `<div class="optionen">` + a.optionen.map((o,i)=>
+      `<label class="opt"><input type="radio" name="${key}" value="${i}"><span>${o}</span></label>`).join("") + `</div>`;
+  }
+  if(a.typ==="zuordnen"){
+    const opts = a.kategorien.map((c,i)=>`<option value="${i}">${c}</option>`).join("");
+    h += `<div class="zeilen">` + a.items.map((it,i)=>
+      `<div class="zeile" data-soll="${it.k}"><span class="z-text">${it.t}</span>
+       <select aria-label="Kategorie wählen"><option value="">– bitte wählen –</option>${opts}</select></div>`).join("") + `</div>`;
+  }
+  if(a.typ==="reihe"){
+    const opts = a.items.map((_,p)=>`<option value="${p}">${p+1}.</option>`).join("");
+    h += `<div class="zeilen">` + mischen(a.items.map((_,i)=>i)).map(i=>
+      `<div class="zeile" data-soll="${i}"><select aria-label="Position wählen"><option value="">Platz</option>${opts}</select>
+       <span class="z-text">${a.items[i]}</span></div>`).join("") + `</div>`;
+  }
+  if(a.typ==="offen"){
+    h += `<textarea rows="6" placeholder="Schreiben Sie hier Ihren Text …"></textarea>`;
+  }
+
+  h += `<div class="knoepfe">` +
+       (a.typ==="offen"
+         ? `<button class="b-pruefen">Musterlösung &amp; Checkliste zeigen</button>`
+         : `<button class="b-pruefen">Prüfen</button><button class="b-loesung sek" hidden>Lösung zeigen</button>`) +
+       `<button class="b-reset sek">Zurücksetzen</button></div><div class="feedback" aria-live="polite"></div>`;
+  box.innerHTML = h;
+
+  const fb = box.querySelector(".feedback");
+  const lBtn = box.querySelector(".b-loesung");
+  const zeige = (art, html) => { fb.className = "feedback " + art; fb.innerHTML = html; };
+
+  // PRÜFEN
+  box.querySelector(".b-pruefen").addEventListener("click", ()=>{
+    if(a.typ==="mc"){
+      const wahl = box.querySelector("input:checked");
+      box.querySelectorAll(".opt").forEach(l=>l.classList.remove("richtig","falsch"));
+      if(!wahl){ zeige("info","Bitte wählen Sie zuerst eine Antwort."); return; }
+      if(Number(wahl.value)===a.richtig){
+        wahl.closest(".opt").classList.add("richtig");
+        zeige("ok", "<p><b>Richtig!</b></p><p>"+a.erklaerung+"</p>"); markiere(key, box, true);
+      } else {
+        wahl.closest(".opt").classList.add("falsch");
+        zeige("nein","<p><b>Noch nicht richtig.</b> Lesen Sie die Antworten noch einmal genau und versuchen Sie es erneut.</p>");
+        lBtn.hidden = false;
+      }
+    }
+    if(a.typ==="zuordnen" || a.typ==="reihe"){
+      const zeilen = box.querySelectorAll(".zeile");
+      let ok = 0;
+      zeilen.forEach(z=>{
+        const r = z.querySelector("select").value === z.dataset.soll;
+        z.classList.toggle("richtig", r); z.classList.toggle("falsch", !r);
+        if(r) ok++;
+      });
+      if(ok===zeilen.length){
+        zeige("ok","<p><b>Alles richtig!</b></p><p>"+a.erklaerung+"</p>"); markiere(key, box, true);
+      } else {
+        zeige("nein",`<p><b>${ok} von ${zeilen.length} richtig.</b> Prüfen Sie die rot markierten Zeilen noch einmal.</p>`);
+        lBtn.hidden = false;
+      }
+    }
+    if(a.typ==="offen"){
+      zeige("info", "<p><b>Musterlösung</b> (eine von mehreren guten Möglichkeiten):</p>" + a.loesung +
+        "<p><b>Checkliste – haken Sie ab, was Ihr Text erfüllt:</b></p><div class='checkliste'>" +
+        a.kriterien.map(k=>`<label><input type="checkbox"> <span>${k}</span></label>`).join("") + "</div>");
+      markiere(key, box, true);
+    }
+  });
+
+  // LÖSUNG ZEIGEN
+  if(lBtn) lBtn.addEventListener("click", ()=>{
+    if(a.typ==="mc"){
+      box.querySelectorAll(".opt").forEach(l=>l.classList.remove("richtig","falsch"));
+      const r = box.querySelector(`input[value="${a.richtig}"]`);
+      r.checked = true; r.closest(".opt").classList.add("richtig");
+    } else {
+      box.querySelectorAll(".zeile").forEach(z=>{
+        z.querySelector("select").value = z.dataset.soll;
+        z.classList.remove("falsch"); z.classList.add("richtig");
+      });
+    }
+    zeige("info","<p><b>Lösung:</b> "+a.erklaerung+"</p><p>Tipp: Zurücksetzen und später noch einmal selbst lösen.</p>");
+    lBtn.hidden = true;
+  });
+
+  // ZURÜCKSETZEN
+  box.querySelector(".b-reset").addEventListener("click", ()=>{
+    box.querySelectorAll("input[type=radio]").forEach(i=>i.checked=false);
+    box.querySelectorAll("select").forEach(s=>s.value="");
+    box.querySelectorAll("textarea").forEach(t=>t.value="");
+    box.querySelectorAll(".richtig,.falsch").forEach(e=>e.classList.remove("richtig","falsch"));
+    fb.className = "feedback"; fb.innerHTML = "";
+    if(lBtn) lBtn.hidden = true;
+    markiere(key, box, false);
+  });
+
+  return box;
+}
+
+function markiere(key, box, status){
+  if(status) geloest[key] = true; else delete geloest[key];
+  box.classList.toggle("geloest", status);
+  fortschritt();
+}
+
+function fortschritt(){
+  let alle = 0, fertig = 0;
+  THEMEN.forEach(t=>{
+    const n = t.aufgaben.length;
+    const g = t.aufgaben.filter((_,i)=>geloest[t.id+"-"+i]).length;
+    alle += n; fertig += g;
+    document.querySelectorAll(`[data-fort="${t.id}"]`).forEach(e=>e.textContent = `${g}/${n}`);
+    document.querySelector(`.karte[data-thema="${t.id}"]`).classList.toggle("fertig", g===n);
+  });
+  document.getElementById("gesamtbalken").style.width = (fertig/alle*100) + "%";
+  document.getElementById("gesamtzahl").textContent = `${fertig}/${alle} Aufgaben`;
+}
+
+// Seite aufbauen
+THEMEN.forEach(t=>{
+  const karte = document.createElement("a");
+  karte.className = "karte"; karte.href = "#t-"+t.id; karte.dataset.thema = t.id;
+  karte.innerHTML = `<span class="icon" aria-hidden="true">${t.icon}</span><span class="k-titel">${t.titel}</span>
+    <span class="k-info">${t.kurz}</span><span class="k-meta">ca. ${t.zeit} Min · <b data-fort="${t.id}">0/${t.aufgaben.length}</b></span>`;
+  karte.addEventListener("click", ()=>{ document.getElementById("t-"+t.id).open = true; });
+  document.getElementById("karten").appendChild(karte);
+
+  const sek = document.createElement("details");
+  sek.className = "thema"; sek.id = "t-"+t.id;
+  sek.innerHTML = `<summary><span aria-hidden="true">${t.icon}</span> ${t.titel}
+    <span class="badge">ca. ${t.zeit} Min · <span data-fort="${t.id}">0/${t.aufgaben.length}</span></span></summary>
+    <div class="thema-inhalt"><p class="intro">${t.intro}</p></div>`;
+  const inhalt = sek.querySelector(".thema-inhalt");
+  t.aufgaben.forEach((a,i)=>inhalt.appendChild(baueAufgabe(t,a,i)));
+  document.getElementById("themen").appendChild(sek);
+});
+fortschritt();
+</script>
+</body>
+</html>
